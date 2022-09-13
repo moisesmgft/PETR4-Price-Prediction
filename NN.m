@@ -15,11 +15,13 @@ function NN(data_filename, option)
         %
         P=input(:,1:size(input,2));
         T=[closing_price(11:10:size(closing_price))]';
-
+        
     elseif (option=='D')||(option=='E')||(option=='F')
         %
-        P=input(:,1:size(input,2));
-        T=input(:,2:size(input));
+        P=input(:,1:size(input,2)-1);
+        T=input(:,2:size(input,2));
+        size(P)
+        size(T)
     end
 
     if option=='A'
@@ -34,6 +36,15 @@ function NN(data_filename, option)
     end
 
     if option=='B'
+        %
+        net = feedforwardnet([10 10]);
+        net = configure(net, P, T);
+
+        %
+        net.layers{1}.transferFcn='poslin';
+        net.layers{2}.transferFcn='poslin';
+        net.layers{3}.transferFcn='purelin';
+        net.trainFcn='trainlm';
 
     end
 
@@ -42,10 +53,27 @@ function NN(data_filename, option)
     end
 
     if option=='D'
+        %
+        net = feedforwardnet(25);
+        net = configure(net, P, T);
+
+        %
+        net.layers{1}.transferFcn='tansig';
+        net.layers{2}.transferFcn='purelin';
+        net.trainFcn='trainbr';
 
     end
 
     if option=='E'
+        %
+        net = feedforwardnet([25 25]);
+        net = configure(net, P, T);
+
+        %
+        net.layers{1}.transferFcn='tansig';
+        net.layers{2}.transferFcn='tansig';
+        net.layers{3}.transferFcn='purelin';
+        net.trainFcn='trainbr';
 
     end
 

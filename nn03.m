@@ -9,7 +9,7 @@ closing_price = table2array(table(:,5));
 normalized_data = (closing_price - min(closing_price))/(max(closing_price)-min(closing_price));
 
 % choose between normalized data or original data
-data = normalized_data;
+data = closing_price;
 
 % Narmax
 len = size(data);
@@ -25,8 +25,8 @@ output=data(11:len)';
 P = input(:,1:len-40);
 T = output(1:len-40);
 
-%
-net = feedforwardnet(15);
+% Configure neural network
+net = feedforwardnet([15 15]);
 net = configure(net, P, T);
 
 net.divideFcn = 'dividerand';
@@ -38,24 +38,41 @@ net=init(net);
 
 net.trainParam.showWindow=true;
 net.layers{1}.transferFcn='tansig';
-net.layers{2}.transferFcn='purelin';
-net.trainFcn='trainlm';
+net.layers{2}.transferFcn='poslin';
+net.layers{3}.transferFcn='purelin';
+net.trainFcn='trainrp';
 net.performFcn='mse';
 net.trainParam.epochs=10^6;
 net.trainParam.time=240;
-net.trainParam.lr=0.2;
+net.trainParam.lr=0.001;
 net.trainParam.min_grad=10^-18;
 net.trainParam.max_fail=10^3;
 
+% Train NN
 [net, ~]=train(net,P,T);
 
-% Plotando
-% Plot exceto dos 30 dias finais
+% Simulating closing price
+PsA = net(input);
+Ms = [data(1:10)' PsA];
+
+% Plot
+% Plot real data, except the last 30 days
 plot(1:len-30, data(1:len-30), 'b')
-xlabel('Dias')
-ylabel('Preço')
-title('Valor da PETR4')
+xlabel('Dias', 'FontSize', 12)
+ylabel('Preço', 'FontSize', 12)
+title('Valor da PETR4', 'FontSize', 12)
 grid
 hold on
 
-% Plot dos 
+% Plot the last 30 days
+plot(len-30:len, data(len-30:len), 'r')
+
+% Plot simulation
+plot(1:len, Ms, 'm')
+
+% Add legends
+legend('Fechamento real - Treinamento', 'Fechamento real - Validação', 'Previsão', 'FontSize', 12);
+
+% Adjusting figure size
+fig=gcf;
+fig.Position(3:4)=[1280,400];

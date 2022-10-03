@@ -9,20 +9,24 @@ closing_price = table2array(table(:,5));
 normalized_data = (closing_price - min(closing_price))/(max(closing_price)-min(closing_price));
 
 % choose between normalized data or original data
-data = closing_price;
+data = normalized_data;
 
 % Narmax
-% reshaping the input data
-col = floor(size(data)/10);
-len = col(1)*10;
-input = reshape(data(1:len), [10, col(1)]);
+len = size(data);
+len = len(1);
+
+input = [];
+for i=1:(len-10)
+    input = [input data(i:i+9)];
+end
+output=data(11:len)';
 
 % last 30 days used for testing
-P = input(:,1:col(1)-4);
-T = input(:,2:col(1)-3);
+P = input(:,1:len-40);
+T = output(1:len-40);
 
 %
-net = feedforwardnet(25);
+net = feedforwardnet([10 10]);
 net = configure(net, P, T);
 
 net.divideFcn = 'dividerand';
@@ -34,16 +38,25 @@ net=init(net);
 
 net.trainParam.showWindow=true;
 net.layers{1}.transferFcn='poslin';
+net.layers{2}.transferFcn='poslin';
 net.layers{2}.transferFcn='purelin';
-net.trainFcn='traincgp';
+net.trainFcn='trainlm';
 net.performFcn='mse';
 net.trainParam.epochs=10^6;
 net.trainParam.time=240;
-net.trainParam.lr=0.0005;
+net.trainParam.lr=0.01;
 net.trainParam.min_grad=10^-18;
 net.trainParam.max_fail=10^3;
 
 [net, ~]=train(net,P,T);
+
+% Simulando
+PsA = net(input);
+Ms = [data(1:10)' PsA];
+
+% A
+data = data*(max(closing_price)-min(closing_price)) + min(closing_price);
+Ms = Ms*(max(closing_price)-min(closing_price)) + min(closing_price);
 
 % Plotando
 % Plot exceto dos 30 dias finais
@@ -57,9 +70,9 @@ hold on
 % Plot dos 30 últimos dias
 plot(len-30:len, data(len-30:len), 'r')
 
-% Simulando
-PsA = net(input(:,1:col(1)-1));
-PsA = reshape(PsA, [1,len-10]);
-Ms = [data(1:10)' PsA];
-
 plot(1:len, Ms, 'm')
+
+legend('Fechamento real - Treinamento', 'Fechamento real - Validação', 'Previsão');
+
+fig=gcf;
+fig.Position(3:4)=[1280,400];
